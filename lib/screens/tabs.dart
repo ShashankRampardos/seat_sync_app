@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:seat_sync/screens/booking.dart';
+import 'package:seat_sync/screens/profile.dart';
 import 'package:seat_sync/screens/seat_map.dart';
 
 class TabsScreen extends StatefulWidget {
+  const TabsScreen({super.key});
+
   @override
   State<StatefulWidget> createState() {
     return _TabsScreenState();
@@ -9,20 +13,66 @@ class TabsScreen extends StatefulWidget {
 }
 
 class _TabsScreenState extends State<TabsScreen> {
-  final int _selectedPageIndex = 0;
-  final Widget _page = SeatMapScreen();
+  int _selectedPageIndex = 0;
+  final List<String> _titles = ['Seat Map', 'Bookings', 'My Profile'];
+  final List<Widget> _page = [
+    SeatMapScreen(),
+    BookingScreen(),
+    ProfileScreen(),
+  ];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Seat Sync'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: _page,
+      appBar: _selectedPageIndex != 2
+          ? AppBar(
+              title: Text(_titles[_selectedPageIndex]),
+              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+            )
+          : AppBar(
+              toolbarHeight: 150,
+              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+              actions: [
+                Expanded(
+                  child: Stack(
+                    children: [
+                      // Settings icon top-right
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: IconButton(
+                          onPressed: () {},
+                          icon: Icon(Icons.settings),
+                        ),
+                      ),
+                      // Person icon center-right
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircleAvatar(
+                              radius: 30,
+                              backgroundImage: AssetImage(
+                                'assets/profile_image.png',
+                              ),
+                            ),
+                            SizedBox(height: 10),
+                            Text('profileName'),
+                            SizedBox(height: 20),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+      body: _page[_selectedPageIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedPageIndex,
         onTap: (index) {
-          setState(() {});
+          setState(() {
+            _selectedPageIndex = index;
+          });
         },
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         items: const [

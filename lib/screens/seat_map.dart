@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class SeatMapScreen extends StatefulWidget {
+  const SeatMapScreen({super.key});
+
   @override
   State<StatefulWidget> createState() => _SeatMapScreenState();
 }
@@ -23,6 +25,49 @@ class _SeatMapScreenState extends State<SeatMapScreen> {
     });
   }
 
+  void bookSeat(int index) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(20),
+              height: 400,
+              child: Column(
+                children: [
+                  TextField(decoration: InputDecoration(labelText: 'otp')),
+                  SizedBox(height: 20),
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: 'Duration (minutes)',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'Book Seat ${index + 1}',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      changeColor(index, Colors.red);
+                      Navigator.pop(context);
+                    },
+                    child: Text('Confirm Booking'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,7 +83,7 @@ class _SeatMapScreenState extends State<SeatMapScreen> {
           itemCount: rows * cols,
           itemBuilder: (context, index) {
             return GestureDetector(
-              onTap: () => changeColor(index, Colors.green),
+              onTap: () => bookSeat(index),
               child: Container(
                 decoration: BoxDecoration(
                   color: cellColors[index],
