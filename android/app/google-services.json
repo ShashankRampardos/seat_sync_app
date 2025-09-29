@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "36345677603",
+    "project_id": "seatsync-fdd39",
+    "storage_bucket": "seatsync-fdd39.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:36345677603:android:0b0b01d62ee126fae4ee96",
+        "android_client_info": {
+          "package_name": "com.example.seat_sync_v2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "36345677603-ai9vp8tl9pb70se7vn2cq3tpd8rhddgg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1U2hQUmj2C7bLMOPsPDntYiMDG6kHAOE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "36345677603-ai9vp8tl9pb70se7vn2cq3tpd8rhddgg.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "36345677603-e2cu05j2e9sjdd470apudic6bsdh7uo5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.seatSync"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

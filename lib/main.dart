@@ -1,8 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:seat_sync/screens/tabs.dart';
+import 'package:seat_sync_v2/screens/tabs.dart';
 
-void main() {
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Simple connection test
+  try {
+    final app = Firebase.app();
+    print("✅ Firebase connected: ${app.name}");
+  } catch (e) {
+    print("❌ Firebase NOT connected: $e");
+  }
+
   runApp(ProviderScope(child: MyApp()));
 }
 
