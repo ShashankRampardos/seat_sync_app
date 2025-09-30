@@ -18,12 +18,10 @@ class _SignupScreenState extends State<SignupScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final TextEditingController _usernameController = TextEditingController();
-
   final TextEditingController _emailController = TextEditingController();
-
   final TextEditingController _passwordController = TextEditingController();
-
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -34,7 +32,7 @@ class _SignupScreenState extends State<SignupScreen> {
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -59,7 +57,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
         await _firestore.collection("users").doc(userCredential.user!.uid).set({
           "username": _usernameController.text.trim(),
-          "phone": "9876543210", // tu yaha phoneController use kare
+          "phone": _phoneController.text.trim(),
+          "dob": _dobController.text.trim(),
           "email": _emailController.text.trim(),
           "createdAt": FieldValue.serverTimestamp(),
         });
@@ -129,10 +128,39 @@ class _SignupScreenState extends State<SignupScreen> {
                           if (value == null || value.isEmpty) {
                             return 'Number field cannot be empty';
                           }
-                          if (value.length < 10) {
+                          if (value.length != 10) {
                             return 'Number is too short';
                           }
                           return null; // null will be returned to validate() in _submit method if condition, null returned means true
+                        },
+                      ),
+                      SizedBox(height: 20),
+                      TextFormField(
+                        controller: _dobController,
+                        keyboardType: TextInputType.datetime,
+                        decoration: InputDecoration(
+                          labelText: 'Date of Birth',
+                          helperText: 'please select your date of birth',
+                        ),
+                        readOnly: true,
+                        onTap: () async {
+                          FocusScope.of(context).requestFocus(FocusNode());
+                          DateTime? pickedDate = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(1900),
+                            lastDate: DateTime.now(),
+                          );
+                          if (pickedDate != null) {
+                            _dobController.text =
+                                "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+                          }
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Date of birth cannot be empty';
+                          }
+                          return null;
                         },
                       ),
                       SizedBox(height: 20),
