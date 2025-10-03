@@ -112,9 +112,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onPressed: isLoading
                             ? null
                             : () {
-                                setModalState(() {
-                                  isLoading = true;
-                                });
                                 if (_auth.currentUser == null) {
                                   Utils.showToast('No user logged in');
                                   return;

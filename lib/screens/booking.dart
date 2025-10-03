@@ -4,6 +4,6 @@ class BookingScreen extends StatelessWidget {
   const BookingScreen({super.key});
   @override
   Widget build(context) {
-    return Center(child: Text('Bookings Screen'));
+    return Center(child: Text('🛠️ Bookings Screen Coming Soon'));
   }
 }

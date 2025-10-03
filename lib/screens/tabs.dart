@@ -2,26 +2,30 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:seat_sync_v2/screens/booking.dart';
 import 'package:seat_sync_v2/screens/profile.dart';
 import 'package:seat_sync_v2/screens/seat_map.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:seat_sync_v2/screens/settings.dart';
 import 'dart:io';
 
 import 'package:seat_sync_v2/utils/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class TabsScreen extends StatefulWidget {
+import 'package:seat_sync_v2/providers/revel_paid_unpaid.dart';
+
+class TabsScreen extends ConsumerStatefulWidget {
   const TabsScreen({super.key});
 
   @override
-  State<StatefulWidget> createState() {
+  ConsumerState<ConsumerStatefulWidget> createState() {
     return _TabsScreenState();
   }
 }
 
-class _TabsScreenState extends State<TabsScreen> {
+class _TabsScreenState extends ConsumerState<TabsScreen> {
   int _selectedPageIndex = 0;
   String _profileName = "profileName";
   //String? _profileImageUrl;
@@ -30,6 +34,7 @@ class _TabsScreenState extends State<TabsScreen> {
   final ImagePicker _picker = ImagePicker();
   File? _imageFile;
   String? _imagePath;
+  var _imageKey;
   //final _auth = FirebaseAuth.instance;
 
   @override
@@ -46,9 +51,10 @@ class _TabsScreenState extends State<TabsScreen> {
   void _initializeProfile() async {
     if (FirebaseAuth.instance.currentUser == null) return;
     //returive profile pic path from shared preferences if it present, otherwise null will be retured
-    final prefs = await SharedPreferences.getInstance();
-    _imagePath = prefs.getString('profile_pic_path');
-
+    if (_imagePath == null) {
+      final prefs = await SharedPreferences.getInstance();
+      _imagePath = prefs.getString('profile_pic_path');
+    }
     //retiving document from 'users' collection from firebstore
     var uid = FirebaseAuth.instance.currentUser!.uid;
     var snapshot = await FirebaseFirestore.instance
@@ -167,8 +173,9 @@ class _TabsScreenState extends State<TabsScreen> {
       final File newImage = await File(picked.path).copy(newPath);
 
       setState(() {
-        _imageFile = newImage;
+        //_imageFile = newImage;
         _imagePath = newImage.path;
+        _imageKey = UniqueKey();
       });
       //saving image in local storage using shared preferences
       final prefs = await SharedPreferences.getInstance();
@@ -196,9 +203,14 @@ class _TabsScreenState extends State<TabsScreen> {
       final File newImage = await File(picked.path).copy(newPath);
 
       setState(() {
-        _imageFile = newImage;
+        //_imageFile = newImage;
         _imagePath = newImage.path;
+        _imageKey = UniqueKey();
       });
+
+      debugPrint('-----newimage path: $_imagePath');
+      debugPrint('-----new path: $newPath');
+
       //saving image in local storage using shared preferences
       final prefs = await SharedPreferences.getInstance();
       prefs.setString('profile_pic_path', _imagePath!);
@@ -209,6 +221,14 @@ class _TabsScreenState extends State<TabsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ImageProvider<Object> profileImage;
+    if (_imagePath != null) {
+      // Add a unique key using the last modified timestamp to bust the cache.
+      // This is an alternative to the ValueKey on the CircleAvatar itself.
+      profileImage = FileImage(File(_imagePath!));
+    } else {
+      profileImage = const AssetImage('assets/profile_image.png');
+    }
     //if not logged in, set default profile name and pic
     if (_selectedPageIndex == 2 && FirebaseAuth.instance.currentUser == null) {
       setState(() {
@@ -221,6 +241,8 @@ class _TabsScreenState extends State<TabsScreen> {
       _initializeProfile();
     }
 
+    final toRevelPaidUnpaid = ref.watch(toRevelPaidUnpaidProvider);
+
     return Scaffold(
       appBar: _selectedPageIndex != 2
           ? AppBar(
@@ -229,6 +251,26 @@ class _TabsScreenState extends State<TabsScreen> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+              actions: (_selectedPageIndex == 0)
+                  ? [
+                      IconButton(
+                        onPressed: () {
+                          if (!toRevelPaidUnpaid) {
+                            ref
+                                    .watch(toRevelPaidUnpaidProvider.notifier)
+                                    .state =
+                                true;
+                          } else {
+                            ref
+                                    .watch(toRevelPaidUnpaidProvider.notifier)
+                                    .state =
+                                false;
+                          }
+                        },
+                        icon: Icon(Icons.paid),
+                      ),
+                    ]
+                  : [],
             )
           : AppBar(
               toolbarHeight: 150,
@@ -241,7 +283,14 @@ class _TabsScreenState extends State<TabsScreen> {
                       Align(
                         alignment: Alignment.topRight,
                         child: IconButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SettingsScreen(),
+                              ),
+                            );
+                          },
                           icon: Icon(Icons.settings),
                         ),
                       ),
@@ -256,12 +305,19 @@ class _TabsScreenState extends State<TabsScreen> {
                                 Radius.circular(50),
                               ),
 
-                              onTap: _chooseImagePickerMethod,
+                              onTap: () async {
+                                if (FirebaseAuth.instance.currentUser != null) {
+                                  await _chooseImagePickerMethod();
+                                } else {
+                                  Utils.showToast(
+                                    'You need to be logged in to change profile picture',
+                                  );
+                                }
+                              },
                               child: CircleAvatar(
+                                key: _imageKey,
                                 radius: 45,
-                                backgroundImage: _imagePath != null
-                                    ? FileImage(File(_imagePath!))
-                                    : AssetImage('assets/profile_image.png'),
+                                backgroundImage: profileImage,
                               ),
                             ),
                             SizedBox(height: 10),
