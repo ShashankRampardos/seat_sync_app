@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import 'package:seat_sync_v2/providers/seat_matrix.dart';
 
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
+import 'package:seat_sync_v2/utils/utils.dart';
 
 class SeatMapScreen extends ConsumerStatefulWidget {
   const SeatMapScreen({super.key});
@@ -30,7 +32,12 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
     });
   }
 
+  final _auth = FirebaseAuth.instance;
   void bookSeat(int index) {
+    if (_auth.currentUser == null) {
+      Utils.showToast('Please login to book a seat');
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -145,7 +152,19 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
                               ? 'Free'
                               : 'Paid') //either show paid or free status or the seat index one each cell
                         : 'Seat ${index + 1}',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: toRevelPaidUnpaid
+                          ? seats[index].isFree
+                                ? FontWeight.normal
+                                : FontWeight.bold
+                          : FontWeight.normal,
+                      fontSize: toRevelPaidUnpaid
+                          ? seats[index].isFree
+                                ? 15
+                                : 20
+                          : 17,
+                    ),
                   ),
                 ),
               ),

@@ -3,6 +3,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:seat_sync_v2/screens/auth/login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:seat_sync_v2/screens/tabs.dart';
 import 'package:seat_sync_v2/utils/utils.dart';
 
 final _formKey = GlobalKey<FormState>();
@@ -76,7 +77,10 @@ class _SignupScreenState extends State<SignupScreen> {
         if (_auth.currentUser != null) {
           Utils.showToast('Siged up successfully');
         }
-        Navigator.pop(context);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => TabsScreen()),
+        );
       }
 
       print("User Signed up");

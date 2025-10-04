@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:seat_sync_v2/models/seat_info.dart';
+import 'package:seat_sync_v2/models/seat_status.dart';
 import 'package:seat_sync_v2/providers/row_and_col.dart';
 
 // Remove top-level usage of ref
@@ -11,15 +12,22 @@ class SeatMatrix extends StateNotifier<List<Seat>> {
         List.generate(rows * cols, (index) {
           index = index + 1;
           final isSeatFree = (index % 4 == 3 || index % 4 == 0);
-          return Seat(
-            id: index + 1,
-            isFree: isSeatFree ? false : true,
-            color: isSeatFree
-                ? const Color.fromARGB(255, 108, 121, 128)
-                : Colors.grey,
-          );
+          return Seat(id: index + 1, isFree: isSeatFree ? false : true);
         }),
       );
+
+  void updateSeat(int seatId, String payload) {
+    state = [
+      for (final seat in state)
+        if (seat.id == seatId)
+          seat.copyWith(
+            status: payload == "1" ? SeatStatus.occupied : SeatStatus.available,
+            color: payload == "1" ? Colors.green : Colors.grey,
+          )
+        else
+          seat,
+    ];
+  }
 }
 
 // Example provider to use with Riverpod

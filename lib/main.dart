@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seat_sync_v2/screens/splash.dart';
 import 'package:seat_sync_v2/screens/tabs.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -22,8 +24,8 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
+  MyApp({super.key});
+  final _auth = FirebaseAuth.instance;
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -33,7 +35,7 @@ class MyApp extends StatelessWidget {
           seedColor: const Color.fromARGB(255, 236, 130, 0),
         ),
       ),
-      home: TabsScreen(),
+      home: _auth.currentUser == null ? SplashScreen() : TabsScreen(),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:seat_sync_v2/screens/auth/login.dart';
+import 'package:seat_sync_v2/screens/splash.dart';
 import 'package:seat_sync_v2/utils/utils.dart';
 
 final _formKey = GlobalKey<FormState>();
@@ -15,7 +16,11 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
   final _auth = FirebaseAuth.instance;
+  bool isLoading = false;
 
   void editProfile(BuildContext context) {
     showModalBottomSheet(
@@ -24,16 +29,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
-            final FirebaseAuth _auth = FirebaseAuth.instance;
-
-            final TextEditingController _usernameController =
-                TextEditingController();
-            final TextEditingController _phoneController =
-                TextEditingController();
-            final TextEditingController _dobController =
-                TextEditingController();
-            bool isLoading = false;
-
             return Container(
               width: double.infinity,
               padding: EdgeInsets.all(20),
@@ -189,6 +184,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: 'edit profile',
           icon: Icons.edit,
           onTap: () {
+            if (_auth.currentUser == null) {
+              Utils.showToast('Please login first');
+              return;
+            }
             editProfile(context);
           },
         ),
@@ -235,7 +234,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _auth.signOut();
                         Utils.showToast('Logged out successfully');
                         widget.refresh(() {});
-                        Navigator.pop(context);
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SplashScreen(),
+                          ),
+                          (Route<dynamic> route) =>
+                              false, // saare purane routes hata dega
+                        );
                       },
                       child: Text('Yes'),
                     ),

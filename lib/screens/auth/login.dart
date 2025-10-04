@@ -2,12 +2,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:seat_sync_v2/screens/auth/signup.dart';
+import 'package:seat_sync_v2/screens/tabs.dart';
 import 'package:seat_sync_v2/utils/utils.dart';
 
 final _formKey = GlobalKey<FormState>();
 
 class LoginScreen extends StatefulWidget {
-  LoginScreen({super.key});
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -49,7 +50,10 @@ class _LoginScreenState extends State<LoginScreen> {
               _isLoading = false;
             });
             Utils.showToast('Logged in successfully');
-            Navigator.pop(context);
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => TabsScreen()),
+            );
           })
           .catchError((error) {
             setState(() {

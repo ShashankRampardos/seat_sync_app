@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:seat_sync_v2/models/seat_status.dart';
 
 class Seat {
   final int id; // seat number or id
@@ -8,7 +9,7 @@ class Seat {
   String? otp; // OTP assigned for authentication
   DateTime? bookedAt; // booking timestamp
   Duration? duration; // how long it is reserved
-  String status; // e.g., "available", "occupied", "reserved"
+  SeatStatus status; // e.g., "available", "occupied", "reserved"
   bool isFree; // free hai ya paid hai
   bool isHumanPresent;
   bool isObjectPresent;
@@ -21,9 +22,11 @@ class Seat {
     this.otp,
     this.bookedAt,
     this.duration,
-    this.status = "available",
+    this.status = SeatStatus.available,
     this.isFree = true,
     this.isHumanPresent = false,
     this.isObjectPresent = false,
   });
+
+  copyWith({required status, required MaterialColor color}) {}
 }
