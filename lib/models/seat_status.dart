@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum SeatStatus {
   available, // 1. Seat Available
   occupied, // 2. Seat Occupied
@@ -28,22 +30,22 @@ extension SeatStatusExtension on SeatStatus {
     }
   }
 
-  String get colorCode {
+  Color get colorCode {
     switch (this) {
       case SeatStatus.available:
-        return "#00FF00"; // Green
+        return Colors.blueGrey; // Green
       case SeatStatus.occupied:
-        return "#FF0000"; // Red
+        return Colors.green; // Red
       case SeatStatus.onHold:
-        return "#FFA500"; // Orange
+        return Colors.blue; // Orange
       case SeatStatus.unauthorizedOccupied:
-        return "#FF1493"; // Pink/Alert
+        return Colors.redAccent; // Pink/Alert
       case SeatStatus.bookingInProgress:
-        return "#FFFF00"; // Yellow
+        return Colors.deepPurpleAccent; // Yellow
       case SeatStatus.reserved:
-        return "#0000FF"; // Blue
+        return Colors.yellow; // Blue
       case SeatStatus.blocked:
-        return "#808080"; // Grey
+        return Colors.black; // Grey
     }
   }
 }

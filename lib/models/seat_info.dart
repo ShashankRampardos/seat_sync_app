@@ -16,7 +16,7 @@ class Seat {
 
   Seat({
     required this.id,
-    this.color = Colors.grey,
+    Color? color,
     this.isBooked = false,
     this.bookedBy,
     this.otp,
@@ -26,7 +26,7 @@ class Seat {
     this.isFree = true,
     this.isHumanPresent = false,
     this.isObjectPresent = false,
-  });
+  }) : color = color ?? SeatStatus.available.colorCode;
 
-  copyWith({required status, required MaterialColor color}) {}
+  copyWith({required status, required Color color}) {}
 }

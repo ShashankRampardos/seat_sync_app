@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color.fromARGB(255, 236, 130, 0),
+          seedColor: const Color.fromARGB(255, 206, 113, 0),
         ),
       ),
       home: _auth.currentUser == null ? SplashScreen() : TabsScreen(),

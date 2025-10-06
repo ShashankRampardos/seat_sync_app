@@ -55,7 +55,7 @@ class SplashScreen extends StatelessWidget {
                       'Guest User',
                       style: TextStyle(
                         fontSize: 20,
-                        color: const Color.fromARGB(255, 255, 115, 0),
+                        color: const Color.fromARGB(255, 240, 135, 15),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -66,7 +66,7 @@ class SplashScreen extends StatelessWidget {
                       backgroundColor: Colors.white,
                       shape: LinearBorder(
                         side: BorderSide(
-                          color: const Color.fromARGB(255, 255, 115, 0),
+                          color: const Color.fromARGB(255, 255, 136, 0),
                           width: 2,
                         ),
                       ),
@@ -86,7 +86,7 @@ class SplashScreen extends StatelessWidget {
                       'Login',
                       style: TextStyle(
                         fontSize: 20,
-                        color: const Color.fromARGB(255, 255, 115, 0),
+                        color: const Color.fromARGB(255, 240, 135, 15),
                         fontWeight: FontWeight.bold,
                       ),
                     ),

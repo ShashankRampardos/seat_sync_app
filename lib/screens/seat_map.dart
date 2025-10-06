@@ -35,7 +35,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
   final _auth = FirebaseAuth.instance;
   void bookSeat(int index) {
     if (_auth.currentUser == null) {
-      Utils.showToast('Please login to book a seat');
+      Utils.showToast('Its a paid seat, please login to book this seat');
       return;
     }
     showModalBottomSheet(

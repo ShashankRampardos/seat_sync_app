@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:convex_bottom_bar/convex_bottom_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:seat_sync_v2/screens/seat_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:seat_sync_v2/screens/settings.dart';
 import 'dart:io';
+import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 
 import 'package:seat_sync_v2/utils/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -246,11 +248,36 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
     return Scaffold(
       appBar: _selectedPageIndex != 2
           ? AppBar(
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              flexibleSpace: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(
+                        context,
+                      ).colorScheme.inversePrimary.withOpacity(0.95),
+                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+              ),
               title: Text(
                 _titles[_selectedPageIndex],
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
               actions: (_selectedPageIndex == 0)
                   ? [
                       IconButton(
@@ -267,93 +294,105 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
                                 false;
                           }
                         },
-                        icon: Icon(Icons.paid),
+                        icon: const Icon(Icons.paid),
                       ),
                     ]
                   : [],
             )
-          : AppBar(
-              toolbarHeight: 150,
-              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-              actions: [
-                Expanded(
-                  child: Stack(
-                    children: [
-                      // Settings icon top-right
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: IconButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SettingsScreen(),
-                              ),
-                            );
-                          },
-                          icon: Icon(Icons.settings),
-                        ),
-                      ),
-                      // Person icon center-right
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            InkWell(
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(50),
-                              ),
-
-                              onTap: () async {
-                                if (FirebaseAuth.instance.currentUser != null) {
-                                  await _chooseImagePickerMethod();
-                                } else {
-                                  Utils.showToast(
-                                    'You need to be logged in to change profile picture',
-                                  );
-                                }
-                              },
-                              child: CircleAvatar(
-                                key: _imageKey,
-                                radius: 45,
-                                backgroundImage: profileImage,
-                              ),
-                            ),
-                            SizedBox(height: 10),
-                            Text(
-                              _profileName,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 20),
-                          ],
-                        ),
-                      ),
-                    ],
+          : PreferredSize(
+              preferredSize: const Size.fromHeight(150),
+              child: AppBar(
+                elevation: 0,
+                backgroundColor: Colors.transparent,
+                flexibleSpace: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(
+                          context,
+                        ).colorScheme.inversePrimary.withAlpha(200),
+                        Theme.of(context).colorScheme.primary.withAlpha(175),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                   ),
                 ),
-              ],
+                toolbarHeight: 150,
+                actions: [
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: Alignment.topRight,
+                          child: IconButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SettingsScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.settings),
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              InkWell(
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(50),
+                                ),
+                                onTap: () async {
+                                  if (FirebaseAuth.instance.currentUser !=
+                                      null) {
+                                    await _chooseImagePickerMethod();
+                                  } else {
+                                    Utils.showToast(
+                                      'You need to be logged in to change profile picture',
+                                    );
+                                  }
+                                },
+                                child: CircleAvatar(
+                                  key: _imageKey,
+                                  radius: 45,
+                                  backgroundImage: profileImage,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                _profileName,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
       body: _page[_selectedPageIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedPageIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedPageIndex = index;
-          });
-        },
+      bottomNavigationBar: ConvexAppBar(
+        style: TabStyle.react, // options: fixed, react, flip, textIn, textOut
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.chair), label: 'Seats'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt),
-            label: 'Bookings',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'My'),
+          TabItem(icon: Icons.chair, title: 'Seats'),
+          TabItem(icon: Icons.list_alt, title: 'Bookings'),
+          TabItem(icon: Icons.person, title: 'My'),
         ],
+        initialActiveIndex: _selectedPageIndex,
+        onTap: (index) {
+          setState(() => _selectedPageIndex = index);
+        },
       ),
     );
   }

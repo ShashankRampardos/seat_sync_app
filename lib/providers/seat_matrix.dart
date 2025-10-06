@@ -11,7 +11,7 @@ class SeatMatrix extends StateNotifier<List<Seat>> {
     : super(
         List.generate(rows * cols, (index) {
           index = index + 1;
-          final isSeatFree = (index % 4 == 3 || index % 4 == 0);
+          final isSeatFree = (index % 4 == 1 || index % 4 == 0);
           return Seat(id: index + 1, isFree: isSeatFree ? false : true);
         }),
       );
@@ -19,10 +19,13 @@ class SeatMatrix extends StateNotifier<List<Seat>> {
   void updateSeat(int seatId, String payload) {
     state = [
       for (final seat in state)
-        if (seat.id == seatId)
+        if (seat.id ==
+            seatId) //badme switch case lagana padega to select different states
           seat.copyWith(
             status: payload == "1" ? SeatStatus.occupied : SeatStatus.available,
-            color: payload == "1" ? Colors.green : Colors.grey,
+            color: payload == "1"
+                ? SeatStatus.occupied.colorCode
+                : SeatStatus.available.colorCode,
           )
         else
           seat,
