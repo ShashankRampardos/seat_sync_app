@@ -11,6 +11,7 @@ class Seat {
   Duration? duration; // how long it is reserved
   SeatStatus status; // e.g., "available", "occupied", "reserved"
   bool isFree; // free hai ya paid hai
+  bool paymentStatus;
   bool isHumanPresent;
   bool isObjectPresent;
 
@@ -24,9 +25,38 @@ class Seat {
     this.duration,
     this.status = SeatStatus.available,
     this.isFree = true,
+    this.paymentStatus = false,
     this.isHumanPresent = false,
     this.isObjectPresent = false,
   }) : color = color ?? SeatStatus.available.colorCode;
 
-  copyWith({required status, required Color color}) {}
+  Seat copyWith({
+    int? id,
+    Color? color,
+    bool? isBooked,
+    String? bookedBy,
+    String? otp,
+    DateTime? bookedAt,
+    Duration? duration,
+    SeatStatus? status,
+    bool? isFree,
+    bool? paymentStatus,
+    bool? isHumanPresent,
+    bool? isObjectPresent,
+  }) {
+    return Seat(
+      id: id ?? this.id,
+      color: color ?? this.color,
+      isBooked: isBooked ?? this.isBooked,
+      bookedBy: bookedBy ?? this.bookedBy,
+      otp: otp ?? this.otp,
+      bookedAt: bookedAt ?? this.bookedAt,
+      duration: duration ?? this.duration,
+      status: status ?? this.status,
+      isFree: isFree ?? this.isFree,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      isHumanPresent: isHumanPresent ?? this.isHumanPresent,
+      isObjectPresent: isObjectPresent ?? this.isObjectPresent,
+    );
+  }
 }

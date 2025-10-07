@@ -8,6 +8,7 @@ enum SeatStatus {
   bookingInProgress, // 5. Seat Booking in Progress (OTP Displayed, Awaiting Authentication)
   reserved, // 6. Reserved Seat (Not for General Public)
   blocked, // 7. Blocked Seat (Damaged / Sensor Fault / Battery Dead)
+  occupiedByObject, // 8. Seat Occupied by an object not human
 }
 
 extension SeatStatusExtension on SeatStatus {
@@ -27,6 +28,8 @@ extension SeatStatusExtension on SeatStatus {
         return "Reserved Seat";
       case SeatStatus.blocked:
         return "Blocked Seat";
+      case SeatStatus.occupiedByObject:
+        return "Occupied by Object";
     }
   }
 
@@ -46,6 +49,8 @@ extension SeatStatusExtension on SeatStatus {
         return Colors.yellow; // Blue
       case SeatStatus.blocked:
         return Colors.black; // Grey
+      case SeatStatus.occupiedByObject:
+        return Colors.deepOrangeAccent;
     }
   }
 }

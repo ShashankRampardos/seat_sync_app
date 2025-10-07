@@ -2,8 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/src/framework.dart';
 
 import 'package:seat_sync_v2/models/seat_info.dart';
+import 'package:seat_sync_v2/models/seat_status.dart';
 import 'package:seat_sync_v2/providers/revel_paid_unpaid.dart';
 import 'package:seat_sync_v2/providers/row_and_col.dart';
 import 'package:seat_sync_v2/providers/seat_matrix.dart';
@@ -20,16 +22,63 @@ class SeatMapScreen extends ConsumerStatefulWidget {
 }
 
 class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
+  late MqttServerClient client;
   @override
   void initState() {
     super.initState();
     //cellColors = List.generate(rows * cols, (index) => Colors.grey); // default
+    setupMQTT();
   }
 
-  void changeColor(int index, Color color) {
-    setState(() {
-      //cellColors[index] = color;
+  Future<void> setupMQTT() async {
+    final row = ref.read(rowAndCol)[0];
+    final col = ref.read(rowAndCol)[1];
+    final totalSeats = row * col;
+
+    client = MqttServerClient(
+      'broker.hivemq.com',
+      'flutter_${DateTime.now().millisecondsSinceEpoch}',
+    );
+    await client.connect();
+    print('MQTT connected');
+
+    // subscribe all seats
+    for (int i = 0; i < totalSeats; i++) {
+      //0 to n seats sub ko subscribe karlo, phir jho update de us sa update lo
+      final topic = 'seat/$i/status';
+      client.subscribe(topic, MqttQos.atLeastOnce);
+    }
+
+    client.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) {
+      final recMess = messages[0].payload as MqttPublishMessage;
+      final payload = MqttPublishPayload.bytesToStringAsString(
+        recMess.payload.message,
+      );
+      final topic = messages[0].topic;
+      debugPrint('[$topic] → $payload');
+      handleSeatStatus(topic, payload);
     });
+  }
+
+  void handleSeatStatus(String topic, String payload) {
+    final seatIndex = int.parse(topic.split('/')[1]); //0 based index
+    final seatNotifier = ref.read(seatMatrixProvider.notifier);
+    final seat = ref.read(seatMatrixProvider)[seatIndex];
+
+    SeatStatus ss = SeatStatus.available;
+    if (payload == '0') {
+      ss = SeatStatus.available;
+    } else if (payload == '1') {
+      ss = seat.isFree
+          ? SeatStatus.occupied
+          : seat.paymentStatus
+          ? SeatStatus.occupied
+          : SeatStatus.unauthorizedOccupied;
+    } else if (payload == '2') {
+      ss = SeatStatus.occupiedByObject;
+    }
+    debugPrint(ss.label);
+    seatNotifier.updateSeat(seatIndex, ss);
   }
 
   final _auth = FirebaseAuth.instance;
@@ -97,7 +146,6 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
                       SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: () {
-                          changeColor(index, Colors.red);
                           Navigator.pop(context);
                         },
                         child: Text('Confirm Booking'),

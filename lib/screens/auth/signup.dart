@@ -133,7 +133,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             return 'Number field cannot be empty';
                           }
                           if (value.length != 10) {
-                            return 'Number is too short';
+                            return 'Number must be 10 digit long';
                           }
                           return null; // null will be returned to validate() in _submit method if condition, null returned means true
                         },

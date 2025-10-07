@@ -67,7 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             return null;
                           }
                           if (value.length != 10) {
-                            return 'Number is too short';
+                            return 'Number must be of 10 digit long';
                           }
                           return null;
                         },
