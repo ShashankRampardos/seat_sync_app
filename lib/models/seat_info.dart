@@ -9,6 +9,8 @@ class Seat {
   String? otp; // OTP assigned for authentication
   DateTime? bookedAt; // booking timestamp
   Duration? duration; // how long it is reserved
+  Duration? seatOnHoldTime;
+  DateTime? holdStartTime;
   SeatStatus status; // e.g., "available", "occupied", "reserved"
   bool isFree; // free hai ya paid hai
   bool paymentStatus;
@@ -23,6 +25,8 @@ class Seat {
     this.otp,
     this.bookedAt,
     this.duration,
+    this.seatOnHoldTime,
+    this.holdStartTime,
     this.status = SeatStatus.available,
     this.isFree = true,
     this.paymentStatus = false,
@@ -38,6 +42,8 @@ class Seat {
     String? otp,
     DateTime? bookedAt,
     Duration? duration,
+    Duration? seatOnHoldTime,
+    DateTime? holdStartTime,
     SeatStatus? status,
     bool? isFree,
     bool? paymentStatus,
@@ -52,6 +58,8 @@ class Seat {
       otp: otp ?? this.otp,
       bookedAt: bookedAt ?? this.bookedAt,
       duration: duration ?? this.duration,
+      seatOnHoldTime: seatOnHoldTime ?? this.seatOnHoldTime,
+      holdStartTime: holdStartTime ?? this.holdStartTime,
       status: status ?? this.status,
       isFree: isFree ?? this.isFree,
       paymentStatus: paymentStatus ?? this.paymentStatus,

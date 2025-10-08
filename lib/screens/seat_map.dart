@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +24,7 @@ class SeatMapScreen extends ConsumerStatefulWidget {
 
 class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
   late MqttServerClient client;
+  final _auth = FirebaseAuth.instance;
   @override
   void initState() {
     super.initState();
@@ -78,10 +80,146 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
       ss = SeatStatus.occupiedByObject;
     }
     debugPrint(ss.label);
-    seatNotifier.updateSeat(seatIndex, ss);
+    seatNotifier.updateSeat(
+      seatId: seatIndex,
+      status: ss,
+    ); //in updateSeat will use ss.colorCode
+    _publishColorCommand(seatIndex, ss.colorCode);
   }
 
-  final _auth = FirebaseAuth.instance;
+  void _publishColorCommand(int seatIndex, Color color) {
+    final topic = 'seat/$seatIndex/command'; // The new command topic
+
+    // Format the payload as a simple "R,G,B" string
+    final payload = '${color.red},${color.green},${color.blue}';
+
+    final builder = MqttClientPayloadBuilder();
+    builder.addString(payload);
+
+    client.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
+
+    debugPrint('PUBLISHED: [$topic] → $payload');
+  }
+
+  //if seat is occupied then only user can set time
+  //if seat.status[index] != SeatStatus.available then duration will become null again.
+  void setExpectedHoldTime(int index, BuildContext context) {
+    final seatNotifier = ref.watch(seatMatrixProvider.notifier);
+    final seatList = ref.read(seatMatrixProvider);
+
+    // This variable will hold the duration selected in the picker.
+    // It's declared here so it's available for the 'Set' button.
+    Duration selectedDuration = seatList[index].duration ?? Duration.zero;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'Set Seat Occupancy Duration (optional but helpful)',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 18),
+          ),
+          // We give the content a fixed size to prevent layout errors.
+          content: SizedBox(
+            height: 200,
+            width: MediaQuery.of(
+              context,
+            ).size.width, // screen width use karne ka lia
+            child: CupertinoTimerPicker(
+              mode: CupertinoTimerPickerMode.hm,
+              initialTimerDuration: selectedDuration,
+              // This callback updates the variable as the user scrolls.
+              onTimerDurationChanged: (Duration newDuration) {
+                selectedDuration = newDuration;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Update the state with the final selected duration.
+                seatNotifier.updateSeat(
+                  seatId: index,
+                  duration: selectedDuration,
+                );
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Set'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _putSeatOnHold(int index, BuildContext context) {
+    final seatNotifier = ref.watch(seatMatrixProvider.notifier);
+    final seatList = ref.read(seatMatrixProvider);
+
+    // This variable will hold the duration selected in the picker.
+    // It's declared here so it's available for the 'Set' button.
+    Duration selectedDuration = seatList[index].duration ?? Duration.zero;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'Set Seat Hold Duration (max 10 minutes)',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 18),
+          ),
+          // We give the content a fixed size to prevent layout errors.
+          content: SizedBox(
+            height: 200,
+            width: MediaQuery.of(
+              context,
+            ).size.width, // screen width use karne ka lia
+            child: CupertinoTimerPicker(
+              mode: CupertinoTimerPickerMode.ms,
+              initialTimerDuration: selectedDuration,
+              // This callback updates the variable as the user scrolls.
+              onTimerDurationChanged: (Duration newDuration) {
+                selectedDuration = newDuration;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Update the state with the final selected duration.
+                if (selectedDuration > Duration(minutes: 10)) {
+                  Utils.showToast('Duration should be lesser than 10');
+                  Navigator.of(dialogContext).pop();
+                  return;
+                }
+                seatNotifier.updateSeat(
+                  seatId: index,
+                  seatOnHoldTime: selectedDuration,
+                );
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Set'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void bookSeat(int index) {
     if (_auth.currentUser == null) {
       Utils.showToast('Its a paid seat, please login to book this seat');
@@ -186,7 +324,30 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
           itemCount: rows * cols,
           itemBuilder: (context, index) {
             return GestureDetector(
-              onTap: () => seats[index].isFree ? null : bookSeat(index),
+              onLongPress: () {
+                if (seats[index].status == SeatStatus.occupied) {
+                  _putSeatOnHold(index, context);
+                } else {
+                  Utils.showToast(
+                    'Please occupy the seat first, seat hold time.',
+                  );
+                }
+              },
+              onTap: () {
+                if (seats[index].isFree) {
+                  if (seats[index].status == SeatStatus.occupied) {
+                    //seats[index].status == SeatStatus.occupied
+                    setExpectedHoldTime(index, context);
+                  } else {
+                    Utils.showToast(
+                      'Please occupy the seat first, to set occupancy time.',
+                    );
+                  }
+                } else {
+                  // seat is paid
+                  bookSeat(index);
+                }
+              },
               child: Container(
                 decoration: BoxDecoration(
                   color: seats[index].color,
