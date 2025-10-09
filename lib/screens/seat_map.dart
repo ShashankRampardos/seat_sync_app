@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/src/framework.dart';
+import 'package:seat_sync_v2/models/pair.dart';
 
 import 'package:seat_sync_v2/models/seat_info.dart';
 import 'package:seat_sync_v2/models/seat_status.dart';
@@ -14,6 +15,7 @@ import 'package:seat_sync_v2/providers/seat_matrix.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:seat_sync_v2/utils/utils.dart';
+import 'package:seat_sync_v2/widgets/countdown_time.dart';
 
 class SeatMapScreen extends ConsumerStatefulWidget {
   const SeatMapScreen({super.key});
@@ -80,9 +82,17 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
       ss = SeatStatus.occupiedByObject;
     }
     debugPrint(ss.label);
+
+    DateTime? bookingTimestamp;
+    // If the seat is becoming occupied and wasn't already, set the timestamp.
+    if (ss == SeatStatus.occupied && seat.status != SeatStatus.occupied) {
+      bookingTimestamp = DateTime.now();
+    }
+
     seatNotifier.updateSeat(
       seatId: seatIndex,
       status: ss,
+      bookedAt: bookingTimestamp,
     ); //in updateSeat will use ss.colorCode
     _publishColorCommand(seatIndex, ss.colorCode);
   }
@@ -148,6 +158,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
                 seatNotifier.updateSeat(
                   seatId: index,
                   duration: selectedDuration,
+                  bookedAt: DateTime.now(),
                 );
                 Navigator.of(dialogContext).pop();
               },
@@ -184,7 +195,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
             ).size.width, // screen width use karne ka lia
             child: CupertinoTimerPicker(
               mode: CupertinoTimerPickerMode.ms,
-              initialTimerDuration: selectedDuration,
+              initialTimerDuration: selectedDuration!,
               // This callback updates the variable as the user scrolls.
               onTimerDurationChanged: (Duration newDuration) {
                 selectedDuration = newDuration;
@@ -209,6 +220,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
                 seatNotifier.updateSeat(
                   seatId: index,
                   seatOnHoldTime: selectedDuration,
+                  status: SeatStatus.onHold,
                 );
                 Navigator.of(dialogContext).pop();
               },
@@ -355,25 +367,38 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
                   border: Border.all(color: Colors.black, width: 0.5),
                 ),
                 child: Center(
-                  child: Text(
-                    toRevelPaidUnpaid
-                        ? (seats[index].isFree
-                              ? 'Free'
-                              : 'Paid') //either show paid or free status or the seat index one each cell
-                        : 'Seat ${index + 1}',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: toRevelPaidUnpaid
-                          ? seats[index].isFree
-                                ? FontWeight.normal
-                                : FontWeight.bold
-                          : FontWeight.normal,
-                      fontSize: toRevelPaidUnpaid
-                          ? seats[index].isFree
-                                ? 15
-                                : 20
-                          : 17,
-                    ),
+                  child: Column(
+                    children: [
+                      Text(
+                        toRevelPaidUnpaid
+                            ? (seats[index].isFree
+                                  ? 'Free'
+                                  : 'Paid') //either show paid or free status or the seat index one each cell
+                            : 'Seat ${index + 1}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: toRevelPaidUnpaid
+                              ? seats[index].isFree
+                                    ? FontWeight.normal
+                                    : FontWeight.bold
+                              : FontWeight.normal,
+                          fontSize: toRevelPaidUnpaid
+                              ? seats[index].isFree
+                                    ? 15
+                                    : 20
+                              : 17,
+                        ),
+                      ),
+                      // Conditionally display the countdown timer
+                      if (seats[index].status == SeatStatus.occupied &&
+                          seats[index].duration != null &&
+                          seats[index].bookedAt != null &&
+                          seats[index].duration! > Duration.zero)
+                        CountdownTimerWidget(
+                          bookedAt: seats[index].bookedAt!,
+                          totalDuration: seats[index].duration!,
+                        ),
+                    ],
                   ),
                 ),
               ),

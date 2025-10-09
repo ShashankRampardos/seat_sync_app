@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,10 @@ import 'package:seat_sync_v2/providers/row_and_col.dart';
 // Remove top-level usage of ref
 
 class SeatMatrix extends StateNotifier<List<Seat>> {
+  // A map to store active timers for each seat on hold.
+  final Map<int, Duration?> holdTimers = {};
+  final Map<int, Duration?> occupancyTime = {}; //seatId, duratino
+
   SeatMatrix(int rows, int cols)
     : super(
         List.generate(rows * cols, (index) {
@@ -34,38 +39,43 @@ class SeatMatrix extends StateNotifier<List<Seat>> {
     bool? isHumanPresent,
     bool? isObjectPresent,
   }) {
-    // --- CORE LOGIC: PART 1 ---
-    // Check if the seat is currently on hold and this is a status update from MQTT.
-    final currentSeat = state.firstWhere((s) => s.id == seatId);
-    if (currentSeat.holdStartTime != null &&
-        currentSeat.seatOnHoldTime != null) {
-      final holdEndTime = currentSeat.holdStartTime!.add(
-        currentSeat.seatOnHoldTime!,
-      );
-      // If the hold is still active AND this update is trying to change the status...
-      if (DateTime.now().isBefore(holdEndTime) && status != null) {
-        debugPrint('Seat $seatId is on hold. Ignoring status update.');
-        return; // ...then ignore this update and exit the function.
-      }
-    }
     state = [
       for (final seat in state)
         if (seat.id == seatId)
-          seat.copyWith(
-            color: color,
-            isBooked: isBooked,
-            bookedBy: bookedBy,
-            otp: otp,
-            bookedAt: bookedAt,
-            duration: status != SeatStatus.available ? null : duration,
-            seatOnHoldTime: seatOnHoldTime,
-            holdStartTime: holdStartTime,
-            status: status,
-            isFree: isFree,
-            paymentStatus: paymentStatus,
-            isHumanPresent: isHumanPresent,
-            isObjectPresent: isObjectPresent,
-          )
+          () {
+            Duration? finalDuration;
+
+            // THIS IS THE CORRECTED LOGIC
+            // 1. Check if the status is actually being updated in this call.
+            if (status != null) {
+              // 2. If it is, and it's not 'available', then clear the duration.
+              if (status != SeatStatus.available) {
+                finalDuration = null;
+              } else {
+                // If status is being set to 'available', keep the duration.
+                finalDuration = duration ?? seat.duration;
+              }
+            } else {
+              // 3. If status is NOT being updated, just use the duration that was passed in.
+              // This is what happens in setExpectedHoldTime.
+              finalDuration = duration ?? seat.duration;
+            }
+            return seat.copyWith(
+              id: seatId,
+              color: status == null ? color : status.colorCode,
+              isBooked: isBooked,
+              bookedBy: bookedBy,
+              otp: otp,
+              bookedAt: bookedAt,
+              duration: finalDuration,
+              seatOnHoldTime: seatOnHoldTime,
+              status: status,
+              isFree: isFree,
+              paymentStatus: paymentStatus,
+              isHumanPresent: isHumanPresent,
+              isObjectPresent: isObjectPresent,
+            );
+          }()
         else
           seat,
     ];

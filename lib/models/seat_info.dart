@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:seat_sync_v2/models/pair.dart';
 import 'package:seat_sync_v2/models/seat_status.dart';
 
 class Seat {
@@ -7,10 +8,10 @@ class Seat {
   bool isBooked; // booking status
   String? bookedBy; // user id or name
   String? otp; // OTP assigned for authentication
-  DateTime? bookedAt; // booking timestamp
+  DateTime?
+  bookedAt; // booking timestamp,(free users bhi entry kar sakte ha isme (auto entry using DateTime.now()))
   Duration? duration; // how long it is reserved
   Duration? seatOnHoldTime;
-  DateTime? holdStartTime;
   SeatStatus status; // e.g., "available", "occupied", "reserved"
   bool isFree; // free hai ya paid hai
   bool paymentStatus;
@@ -26,7 +27,6 @@ class Seat {
     this.bookedAt,
     this.duration,
     this.seatOnHoldTime,
-    this.holdStartTime,
     this.status = SeatStatus.available,
     this.isFree = true,
     this.paymentStatus = false,
@@ -35,15 +35,15 @@ class Seat {
   }) : color = color ?? SeatStatus.available.colorCode;
 
   Seat copyWith({
-    int? id,
+    required int id,
     Color? color,
     bool? isBooked,
     String? bookedBy,
     String? otp,
+    DateTime? freeSeatOccupancyDuration,
     DateTime? bookedAt,
     Duration? duration,
     Duration? seatOnHoldTime,
-    DateTime? holdStartTime,
     SeatStatus? status,
     bool? isFree,
     bool? paymentStatus,
@@ -51,7 +51,7 @@ class Seat {
     bool? isObjectPresent,
   }) {
     return Seat(
-      id: id ?? this.id,
+      id: id,
       color: color ?? this.color,
       isBooked: isBooked ?? this.isBooked,
       bookedBy: bookedBy ?? this.bookedBy,
@@ -59,7 +59,6 @@ class Seat {
       bookedAt: bookedAt ?? this.bookedAt,
       duration: duration ?? this.duration,
       seatOnHoldTime: seatOnHoldTime ?? this.seatOnHoldTime,
-      holdStartTime: holdStartTime ?? this.holdStartTime,
       status: status ?? this.status,
       isFree: isFree ?? this.isFree,
       paymentStatus: paymentStatus ?? this.paymentStatus,
