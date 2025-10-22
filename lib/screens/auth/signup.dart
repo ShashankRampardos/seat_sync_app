@@ -9,7 +9,7 @@ import 'package:seat_sync_v2/utils/utils.dart';
 final _formKey = GlobalKey<FormState>();
 
 class SignupScreen extends StatefulWidget {
-  SignupScreen({super.key});
+  const SignupScreen({super.key});
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
