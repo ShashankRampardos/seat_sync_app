@@ -73,11 +73,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
     if (payload == '0') {
       ss = SeatStatus.available;
     } else if (payload == '1') {
-      ss = seat.isFree
-          ? SeatStatus.occupied
-          : seat.paymentStatus
-          ? SeatStatus.occupied
-          : SeatStatus.unauthorizedOccupied;
+      ss = SeatStatus.occupied;
     } else if (payload == '2') {
       ss = SeatStatus.occupiedByObject;
     }
@@ -195,7 +191,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
             ).size.width, // screen width use karne ka lia
             child: CupertinoTimerPicker(
               mode: CupertinoTimerPickerMode.ms,
-              initialTimerDuration: selectedDuration!,
+              initialTimerDuration: selectedDuration,
               // This callback updates the variable as the user scrolls.
               onTimerDurationChanged: (Duration newDuration) {
                 selectedDuration = newDuration;
@@ -389,6 +385,12 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
                               : 17,
                         ),
                       ),
+                      if (!toRevelPaidUnpaid)
+                        Text(
+                          seats[index].status.label,
+                          style: TextStyle(fontSize: 12),
+                          textAlign: TextAlign.center,
+                        ),
                       // Conditionally display the countdown timer
                       if (seats[index].status == SeatStatus.occupied &&
                           seats[index].duration != null &&

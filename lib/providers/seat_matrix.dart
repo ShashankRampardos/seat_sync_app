@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:seat_sync_v2/models/seat_info.dart';
@@ -46,9 +47,9 @@ class SeatMatrix extends StateNotifier<List<Seat>> {
             Duration? finalDuration;
 
             // THIS IS THE CORRECTED LOGIC
-            // 1. Check if the status is actually being updated in this call.
+            //  Check if the status is actually being updated in this call.
             if (status != null) {
-              // 2. If it is, and it's not 'available', then clear the duration.
+              //  If it is, and it's not 'available', then clear the duration.
               if (status != SeatStatus.available) {
                 finalDuration = null;
               } else {
@@ -56,13 +57,21 @@ class SeatMatrix extends StateNotifier<List<Seat>> {
                 finalDuration = duration ?? seat.duration;
               }
             } else {
-              // 3. If status is NOT being updated, just use the duration that was passed in.
+              //If status is NOT being updated, just use the duration that was passed in.
               // This is what happens in setExpectedHoldTime.
               finalDuration = duration ?? seat.duration;
             }
+            final _auth = FirebaseAuth.instance;
+            if (status == SeatStatus.occupied) {
+              if ((!seat.isFree && !seat.paymentStatus) ||
+                  (seat.bookedBy != null)) {
+                //-------- may be un online database say kar na padega check bookedBy status
+                status = SeatStatus.unauthorizedOccupied;
+              }
+            }
             return seat.copyWith(
               id: seatId,
-              color: status == null ? color : status.colorCode,
+              color: status == null ? color : status!.colorCode,
               isBooked: isBooked,
               bookedBy: bookedBy,
               otp: otp,

@@ -89,10 +89,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             firstDate: DateTime(1900),
                             lastDate: DateTime.now(),
                           );
-                          if (pickedDate != null) {
-                            _dobController.text =
-                                "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
-                          }
+                          _dobController.text =
+                              "${pickedDate!.day}/${pickedDate.month}/${pickedDate.year}";
                         },
                         validator: (value) {
                           if (value == null || value.isEmpty) {

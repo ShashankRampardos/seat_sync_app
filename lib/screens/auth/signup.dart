@@ -62,6 +62,11 @@ class _SignupScreenState extends State<SignupScreen> {
           "dob": _dobController.text.trim(),
           "email": _emailController.text.trim(),
           "createdAt": FieldValue.serverTimestamp(),
+          "userMode": "active", //active or banned, by default active user.
+          "freeUsageCount": 0,
+          "paidUsageCount": 0,
+          "totalSpend": 0,
+          "seatId": null,
         });
       } on FirebaseException catch (error) {
         setState(() {
@@ -155,10 +160,8 @@ class _SignupScreenState extends State<SignupScreen> {
                             firstDate: DateTime(1900),
                             lastDate: DateTime.now(),
                           );
-                          if (pickedDate != null) {
-                            _dobController.text =
-                                "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
-                          }
+                          _dobController.text =
+                              "${pickedDate!.day}/${pickedDate.month}/${pickedDate.year}";
                         },
                         validator: (value) {
                           if (value == null || value.isEmpty) {

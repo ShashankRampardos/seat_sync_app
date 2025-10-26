@@ -3,7 +3,7 @@ import 'package:seat_sync_v2/models/pair.dart';
 import 'package:seat_sync_v2/models/seat_status.dart';
 
 class Seat {
-  final int id; // seat number or id
+  final int id; // seat number or id, natural numbers from 1 to n
   Color color; // UI color
   bool isBooked; // booking status
   String? bookedBy; // user id or name
