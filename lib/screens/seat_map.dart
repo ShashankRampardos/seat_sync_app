@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/src/framework.dart';
-import 'package:seat_sync_v2/models/pair.dart';
 
 import 'package:seat_sync_v2/models/seat_info.dart';
 import 'package:seat_sync_v2/models/seat_status.dart';
@@ -27,6 +26,7 @@ class SeatMapScreen extends ConsumerStatefulWidget {
 class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
   late MqttServerClient client;
   final _auth = FirebaseAuth.instance;
+  String? _receivedOtp;
   @override
   void initState() {
     super.initState();
@@ -51,6 +51,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
       //0 to n seats sub ko subscribe karlo, phir jho update de us sa update lo
       final topic = 'seat/$i/status';
       client.subscribe(topic, MqttQos.atLeastOnce);
+      client.subscribe('seat/$i/otp', MqttQos.atLeastOnce);
     }
 
     client.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) {
@@ -60,7 +61,14 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
       );
       final topic = messages[0].topic;
       debugPrint('[$topic] → $payload');
-      handleSeatStatus(topic, payload);
+      if (topic.contains('/status')) {
+        handleSeatStatus(topic, payload);
+      } else if (topic.contains('/otp')) {
+        setState(() {
+          _receivedOtp = payload; // Save the OTP when it arrives
+        });
+        debugPrint('OTP received: $payload');
+      }
     });
   }
 
@@ -109,62 +117,6 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
 
   //if seat is occupied then only user can set time
   //if seat.status[index] != SeatStatus.available then duration will become null again.
-  void setExpectedHoldTime(int index, BuildContext context) {
-    final seatNotifier = ref.watch(seatMatrixProvider.notifier);
-    final seatList = ref.read(seatMatrixProvider);
-
-    // This variable will hold the duration selected in the picker.
-    // It's declared here so it's available for the 'Set' button.
-    Duration selectedDuration = seatList[index].duration ?? Duration.zero;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text(
-            'Set Seat Occupancy Duration (optional but helpful)',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 18),
-          ),
-          // We give the content a fixed size to prevent layout errors.
-          content: SizedBox(
-            height: 200,
-            width: MediaQuery.of(
-              context,
-            ).size.width, // screen width use karne ka lia
-            child: CupertinoTimerPicker(
-              mode: CupertinoTimerPickerMode.hm,
-              initialTimerDuration: selectedDuration,
-              // This callback updates the variable as the user scrolls.
-              onTimerDurationChanged: (Duration newDuration) {
-                selectedDuration = newDuration;
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Update the state with the final selected duration.
-                seatNotifier.updateSeat(
-                  seatId: index,
-                  duration: selectedDuration,
-                  bookedAt: DateTime.now(),
-                );
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Set'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   void _putSeatOnHold(int index, BuildContext context) {
     final seatNotifier = ref.watch(seatMatrixProvider.notifier);
@@ -223,6 +175,61 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
               child: const Text('Set'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void getSeat(int index, BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(20),
+                  height: 400,
+                  child: Column(
+                    children: [
+                      TextField(decoration: InputDecoration(labelText: 'otp')),
+                      SizedBox(height: 20),
+                      Text(
+                        'Get Seat ${index + 1}',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          final topic = 'seat/$index/otp_request';
+                          final builder = MqttClientPayloadBuilder();
+                          builder.addString(
+                            '{"requestedBy": "${_auth.currentUser?.uid ?? "guest"}"}',
+                          );
+                          client.publishMessage(
+                            topic,
+                            MqttQos.atLeastOnce,
+                            builder.payload!,
+                          );
+                          Utils.showToast('OTP request sent to seat $index');
+                        },
+                        child: Text('Get OTP on seat'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -345,7 +352,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
                 if (seats[index].isFree) {
                   if (seats[index].status == SeatStatus.occupied) {
                     //seats[index].status == SeatStatus.occupied
-                    setExpectedHoldTime(index, context);
+                    getSeat(index, context);
                   } else {
                     Utils.showToast(
                       'Please occupy the seat first, to set occupancy time.',

@@ -61,7 +61,7 @@ class SeatMatrix extends StateNotifier<List<Seat>> {
               // This is what happens in setExpectedHoldTime.
               finalDuration = duration ?? seat.duration;
             }
-            final _auth = FirebaseAuth.instance;
+
             if (status == SeatStatus.occupied) {
               if ((!seat.isFree && !seat.paymentStatus) ||
                   (seat.bookedBy != null)) {
