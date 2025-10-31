@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:seat_sync_v2/models/pair.dart';
 import 'package:seat_sync_v2/models/seat_status.dart';
 
 class Seat {

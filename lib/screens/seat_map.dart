@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:riverpod/src/framework.dart';
 
 import 'package:seat_sync_v2/models/seat_info.dart';
 import 'package:seat_sync_v2/models/seat_status.dart';
@@ -49,11 +48,19 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
     // subscribe all seats
     for (int i = 0; i < totalSeats; i++) {
       //0 to n seats sub ko subscribe karlo, phir jho update de us sa update lo
-      final topic = 'seat/$i/status';
-      client.subscribe(topic, MqttQos.atLeastOnce);
-      client.subscribe('seat/$i/otp', MqttQos.atLeastOnce);
+
+      //topics subscribing here
+      client.subscribe(
+        'seat/$i/status',
+        MqttQos.atLeastOnce,
+      ); //to get the status from all the seat microcontrollers, we are subscribed to this topic to listen from the seat publication
+      client.subscribe(
+        'seat/$i/otp',
+        MqttQos.atLeastOnce,
+      ); //to receive otp from all the seat microcontrollers
     }
 
+    //listening here
     client.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) {
       final recMess = messages[0].payload as MqttPublishMessage;
       final payload = MqttPublishPayload.bytesToStringAsString(
@@ -98,7 +105,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
       status: ss,
       bookedAt: bookingTimestamp,
     ); //in updateSeat will use ss.colorCode
-    _publishColorCommand(seatIndex, ss.colorCode);
+    //_publishColorCommand(seatIndex, ss.colorCode);
   }
 
   void _publishColorCommand(int seatIndex, Color color) {
@@ -185,6 +192,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
       context: context,
       isScrollControlled: true,
       builder: (BuildContext context) {
+        bool isOtpReqSent = false;
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
             return Padding(
@@ -209,19 +217,33 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
                       ),
                       SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: () {
-                          final topic = 'seat/$index/otp_request';
-                          final builder = MqttClientPayloadBuilder();
-                          builder.addString(
-                            '{"requestedBy": "${_auth.currentUser?.uid ?? "guest"}"}',
-                          );
-                          client.publishMessage(
-                            topic,
-                            MqttQos.atLeastOnce,
-                            builder.payload!,
-                          );
-                          Utils.showToast('OTP request sent to seat $index');
-                        },
+                        onPressed: isOtpReqSent
+                            ? null
+                            : () async {
+                                final topic =
+                                    'seat/$index/otp_request'; //to publish with this topic, seat $index will subscribe to listen
+                                final builder = MqttClientPayloadBuilder();
+                                builder.addString(
+                                  _auth.currentUser?.uid ?? "guest",
+                                );
+                                client.publishMessage(
+                                  topic,
+                                  MqttQos.atLeastOnce,
+                                  builder.payload!,
+                                ); //publishing
+                                Utils.showToast(
+                                  'OTP request sent to number ${index + 1}',
+                                );
+                                setModalState(() {
+                                  isOtpReqSent = true;
+                                });
+                                await Future.delayed(
+                                  Duration(milliseconds: 10000),
+                                );
+                                setModalState(() {
+                                  isOtpReqSent = false;
+                                });
+                              },
                         child: Text('Get OTP on seat'),
                       ),
                     ],
@@ -350,13 +372,11 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
               },
               onTap: () {
                 if (seats[index].isFree) {
-                  if (seats[index].status == SeatStatus.occupied) {
+                  if (seats[index].status == SeatStatus.available) {
                     //seats[index].status == SeatStatus.occupied
                     getSeat(index, context);
                   } else {
-                    Utils.showToast(
-                      'Please occupy the seat first, to set occupancy time.',
-                    );
+                    Utils.showToast('This seat already occupied.');
                   }
                 } else {
                   // seat is paid

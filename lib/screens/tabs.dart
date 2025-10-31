@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:convex_bottom_bar/convex_bottom_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -11,7 +10,6 @@ import 'package:seat_sync_v2/screens/seat_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:seat_sync_v2/screens/settings.dart';
 import 'dart:io';
-import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 
 import 'package:seat_sync_v2/utils/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';

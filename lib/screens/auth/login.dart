@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:seat_sync_v2/screens/auth/signup.dart';
 import 'package:seat_sync_v2/screens/tabs.dart';
 import 'package:seat_sync_v2/utils/utils.dart';

@@ -8,7 +8,7 @@ import 'package:seat_sync_v2/utils/utils.dart';
 final _formKey = GlobalKey<FormState>();
 
 class ProfileScreen extends StatefulWidget {
-  ProfileScreen({super.key, required this.refresh});
+  const ProfileScreen({super.key, required this.refresh});
   final Function refresh;
 
   @override

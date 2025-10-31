@@ -4,6 +4,8 @@ import 'package:seat_sync_v2/screens/auth/signup.dart';
 import 'package:seat_sync_v2/screens/tabs.dart';
 
 class SplashScreen extends StatelessWidget {
+  const SplashScreen({super.key});
+
   @override
   Widget build(context) {
     return Scaffold(
