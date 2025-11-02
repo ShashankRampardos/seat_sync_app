@@ -26,6 +26,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
   late MqttServerClient client;
   final _auth = FirebaseAuth.instance;
   String? _receivedOtp;
+  bool _otpAuthenticated = false;
   @override
   void initState() {
     super.initState();
@@ -71,9 +72,13 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
       if (topic.contains('/status')) {
         handleSeatStatus(topic, payload);
       } else if (topic.contains('/otp')) {
-        setState(() {
-          _receivedOtp = payload; // Save the OTP when it arrives
-        });
+        if (payload == "null" && !_otpAuthenticated) {
+          Utils.showToast("Otp expired");
+        } else {
+          setState(() {
+            _receivedOtp = payload; // Save the OTP when it arrives
+          });
+        }
         debugPrint('OTP received: $payload');
       }
     });
@@ -90,20 +95,30 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
     } else if (payload == '1') {
       ss = SeatStatus.occupied;
     } else if (payload == '2') {
+      ss = SeatStatus.onHold;
+    } else if (payload == '3') {
+      ss = SeatStatus.unauthorizedOccupied;
+    } else if (payload == '4') {
+      ss = SeatStatus.bookingInProgress;
+    } else if (payload == '5') {
+      ss = SeatStatus.reserved;
+    } else if (payload == '6') {
+      ss = SeatStatus.blocked;
+    } else if (payload == '7') {
       ss = SeatStatus.occupiedByObject;
     }
     debugPrint(ss.label);
 
-    DateTime? bookingTimestamp;
-    // If the seat is becoming occupied and wasn't already, set the timestamp.
-    if (ss == SeatStatus.occupied && seat.status != SeatStatus.occupied) {
-      bookingTimestamp = DateTime.now();
-    }
+    // DateTime? bookingTimestamp;
+    // // If the seat is becoming occupied and wasn't already, set the timestamp.
+    // if (ss == SeatStatus.occupied && seat.status != SeatStatus.occupied) {
+    //   bookingTimestamp = DateTime.now();
+    // }
 
     seatNotifier.updateSeat(
       seatId: seatIndex,
       status: ss,
-      bookedAt: bookingTimestamp,
+      //bookedAt: bookingTimestamp,
     ); //in updateSeat will use ss.colorCode
     //_publishColorCommand(seatIndex, ss.colorCode);
   }
@@ -206,7 +221,36 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
                   height: 400,
                   child: Column(
                     children: [
-                      TextField(decoration: InputDecoration(labelText: 'otp')),
+                      TextField(
+                        decoration: InputDecoration(labelText: 'otp'),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onChanged: (value) {
+                          if (value.length == 4) {
+                            if (value == _receivedOtp) {
+                              final topic = 'seat/$index/otp_request';
+                              final builder = MqttClientPayloadBuilder();
+                              builder.addString(_auth.currentUser!.uid);
+                              client.publishMessage(
+                                topic,
+                                MqttQos.atLeastOnce,
+                                builder.payload!,
+                              ); //publishing
+                              Utils.showToast(
+                                "OTP is valid, now please take your seat",
+                              );
+                              setModalState(() {
+                                _otpAuthenticated = true;
+                              });
+
+                              Navigator.pop(context);
+                            }
+                          }
+                        },
+                      ),
+
                       SizedBox(height: 20),
                       Text(
                         'Get Seat ${index + 1}',
@@ -223,9 +267,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
                                 final topic =
                                     'seat/$index/otp_request'; //to publish with this topic, seat $index will subscribe to listen
                                 final builder = MqttClientPayloadBuilder();
-                                builder.addString(
-                                  _auth.currentUser?.uid ?? "guest",
-                                );
+                                builder.addString("guest");
                                 client.publishMessage(
                                   topic,
                                   MqttQos.atLeastOnce,

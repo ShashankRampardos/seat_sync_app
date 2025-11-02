@@ -254,15 +254,15 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
                     colors: [
                       Theme.of(
                         context,
-                      ).colorScheme.inversePrimary.withOpacity(0.95),
-                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                      ).colorScheme.inversePrimary.withAlpha(230),
+                      Theme.of(context).colorScheme.primary.withAlpha(200),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withAlpha(50),
                       blurRadius: 10,
                       offset: const Offset(0, 3),
                     ),

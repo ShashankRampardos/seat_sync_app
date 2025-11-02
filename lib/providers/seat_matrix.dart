@@ -10,8 +10,8 @@ import 'package:seat_sync_v2/providers/row_and_col.dart';
 
 class SeatMatrix extends StateNotifier<List<Seat>> {
   // A map to store active timers for each seat on hold.
-  final Map<int, Duration?> holdTimers = {};
-  final Map<int, Duration?> occupancyTime = {}; //seatId, duratino
+  // final Map<int, Duration?> holdTimers = {};
+  // final Map<int, Duration?> occupancyTime = {}; //seatId, duratino
 
   SeatMatrix(int rows, int cols)
     : super(
@@ -44,32 +44,9 @@ class SeatMatrix extends StateNotifier<List<Seat>> {
           () {
             Duration? finalDuration;
 
-            // THIS IS THE CORRECTED LOGIC
-            //  Check if the status is actually being updated in this call.
-            if (status != null) {
-              //  If it is, and it's not 'available', then clear the duration.
-              if (status != SeatStatus.available) {
-                finalDuration = null;
-              } else {
-                // If status is being set to 'available', keep the duration.
-                finalDuration = duration ?? seat.duration;
-              }
-            } else {
-              //If status is NOT being updated, just use the duration that was passed in.
-              // This is what happens in setExpectedHoldTime.
-              finalDuration = duration ?? seat.duration;
-            }
-
-            if (status == SeatStatus.occupied) {
-              if ((!seat.isFree && !seat.paymentStatus) ||
-                  (seat.bookedBy != null)) {
-                //-------- may be un online database say kar na padega check bookedBy status
-                status = SeatStatus.unauthorizedOccupied;
-              }
-            }
             return seat.copyWith(
               id: seatId,
-              color: status == null ? color : status!.colorCode,
+              color: status == null ? color : status.colorCode,
               isBooked: isBooked,
               bookedBy: bookedBy,
               otp: otp,
