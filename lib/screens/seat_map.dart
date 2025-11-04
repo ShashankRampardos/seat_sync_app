@@ -15,6 +15,8 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:seat_sync_v2/utils/utils.dart';
 import 'package:seat_sync_v2/widgets/countdown_time.dart';
 
+import 'dart:convert';
+
 class SeatMapScreen extends ConsumerStatefulWidget {
   const SeatMapScreen({super.key});
 
@@ -27,6 +29,16 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
   final _auth = FirebaseAuth.instance;
   String? _receivedOtp;
   bool _otpAuthenticated = false;
+
+  int _extractSeatIndexFromTopic(String topic) {
+    //topic format: 'seat/{index}/tepicName
+    final parts = topic.split('/');
+    if (parts.length > 1) {
+      return int.tryParse(parts[1]) ?? -1;
+    }
+    return -1;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +50,8 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
     final row = ref.read(rowAndCol)[0];
     final col = ref.read(rowAndCol)[1];
     final totalSeats = row * col;
+    final seatNotifier = ref.read(seatMatrixProvider.notifier);
+    final seatList = ref.watch(seatMatrixProvider);
 
     client = MqttServerClient(
       'broker.hivemq.com',
@@ -59,6 +73,10 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
         'seat/$i/otp',
         MqttQos.atLeastOnce,
       ); //to receive otp from all the seat microcontrollers
+      client.subscribe(
+        'seat/$i/hold',
+        MqttQos.atLeastOnce,
+      ); //to receive seat on hold information
     }
 
     //listening here
@@ -80,6 +98,15 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
           });
         }
         debugPrint('OTP received: $payload');
+      } else if (topic.contains('/hold')) {
+        if (payload == "0") {
+          Utils.showToast("seat put on hold");
+          final int index = _extractSeatIndexFromTopic(topic);
+          seatNotifier.updateSeat(seatId: index, status: SeatStatus.onHold);
+        } else {
+          //-1 received or something else
+          Utils.showToast("sorry invalid on hold attempt");
+        }
       }
     });
   }
@@ -87,7 +114,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
   void handleSeatStatus(String topic, String payload) {
     final seatIndex = int.parse(topic.split('/')[1]); //0 based index
     final seatNotifier = ref.read(seatMatrixProvider.notifier);
-    final seat = ref.read(seatMatrixProvider)[seatIndex];
+    // final seat = ref.read(seatMatrixProvider)[seatIndex];
 
     SeatStatus ss = SeatStatus.available;
     if (payload == '0') {
@@ -180,18 +207,33 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 // Update the state with the final selected duration.
                 if (selectedDuration > Duration(minutes: 10)) {
                   Utils.showToast('Duration should be lesser than 10');
                   Navigator.of(dialogContext).pop();
                   return;
                 }
-                seatNotifier.updateSeat(
-                  seatId: index,
-                  seatOnHoldTime: selectedDuration,
-                  status: SeatStatus.onHold,
+                // seatNotifier.updateSeat(
+                //   seatId: index,
+                //   seatOnHoldTime: selectedDuration,
+                //   status: SeatStatus.onHold,
+                // );
+
+                final topic = 'seat/$index/hold';
+                final builder = MqttClientPayloadBuilder();
+                builder.addString(
+                  jsonEncode({
+                    'uid': _auth.currentUser!.uid,
+                    'duration': selectedDuration.inMilliseconds,
+                  }),
                 );
+                client.publishMessage(
+                  topic,
+                  MqttQos.atLeastOnce,
+                  builder.payload!,
+                );
+
                 Navigator.of(dialogContext).pop();
               },
               child: const Text('Set'),
