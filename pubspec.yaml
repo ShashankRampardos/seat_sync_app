@@ -48,7 +48,9 @@ dependencies:
   salomon_bottom_bar: ^3.3.2
   convex_bottom_bar: ^3.2.0
   cloud_functions: ^6.0.3
-  
+  cloudinary_flutter: ^1.1.0
+  cloudinary_api: ^1.1.1
+  http: ^1.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -10,10 +10,10 @@ import 'package:seat_sync_v2/screens/seat_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:seat_sync_v2/screens/settings.dart';
 import 'dart:io';
+import 'dart:convert';
 
+import 'package:http/http.dart' as http;
 import 'package:seat_sync_v2/utils/utils.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:seat_sync_v2/providers/revel_paid_unpaid.dart';
 
 class TabsScreen extends ConsumerStatefulWidget {
@@ -28,14 +28,12 @@ class TabsScreen extends ConsumerStatefulWidget {
 class _TabsScreenState extends ConsumerState<TabsScreen> {
   int _selectedPageIndex = 0;
   String _profileName = "profileName";
-  //String? _profileImageUrl;
+  String? _imagePath;
+  var _imageKey;
+
   final List<String> _titles = ['Seat Map', 'Bookings', 'My Profile'];
   late List<Widget> _page;
   final ImagePicker _picker = ImagePicker();
-  File? _imageFile;
-  String? _imagePath;
-  var _imageKey;
-  //final _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
@@ -50,12 +48,7 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
 
   void _initializeProfile() async {
     if (FirebaseAuth.instance.currentUser == null) return;
-    //returive profile pic path from shared preferences if it present, otherwise null will be retured
-    if (_imagePath == null) {
-      final prefs = await SharedPreferences.getInstance();
-      _imagePath = prefs.getString('profile_pic_path');
-    }
-    //retiving document from 'users' collection from firebstore
+
     var uid = FirebaseAuth.instance.currentUser!.uid;
     var snapshot = await FirebaseFirestore.instance
         .collection('users')
@@ -66,10 +59,130 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
       var data = snapshot.data() as Map<String, dynamic>;
       setState(() {
         _profileName = data['username'] ?? "profileName";
-        //_profileImageUrl = data.containsKey('profileImageUrl')
-        //     ? data['profileImageUrl']
-        //     : null;
+        _imagePath = data['profilePic']; // stored network URL
       });
+    }
+  }
+
+  Future<String?> uploadToCloudinary(File file) async {
+    try {
+      String cloudName = "daybeytsk";
+      String uploadPreset = "gql8nhle"; // 1. PASTE YOUR PRESET NAME HERE
+
+      // Note: Remove /v1_1/ from the URL logic if you want, but standard is:
+      // https://api.cloudinary.com/v1_1/<cloud_name>/image/upload
+      String url = "https://api.cloudinary.com/v1_1/$cloudName/image/upload";
+
+      var request = http.MultipartRequest("POST", Uri.parse(url));
+
+      // 2. Use the unsigned preset
+      request.fields['upload_preset'] = uploadPreset;
+
+      // 3. REMOVED the Authorization header (Not needed for unsigned uploads)
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          file.path,
+          filename: "profile_${DateTime.now().millisecondsSinceEpoch}.jpg",
+        ),
+      );
+
+      var response = await request.send();
+      var res = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        var jsonData = jsonDecode(res);
+        print("Upload Success: ${jsonData["secure_url"]}");
+        return jsonData["secure_url"];
+      } else {
+        // This will print the exact error from Cloudinary in your console
+        print("Upload error details: $res");
+        print("Status code: ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      print("Cloudinary exception: $e");
+      return null;
+    }
+  }
+
+  Future<void> updateUserProfileUrl(String url) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    await FirebaseFirestore.instance.collection("users").doc(uid).update({
+      "profilePic": url,
+    });
+  }
+
+  Future<void> _setProfilePictureFromGallery() async {
+    Navigator.pop(context);
+
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 1200,
+      );
+
+      if (picked == null) return;
+
+      File imageFile = File(picked.path);
+
+      Utils.showToast("Uploading...");
+
+      String? imageUrl = await uploadToCloudinary(imageFile);
+
+      if (imageUrl != null) {
+        await updateUserProfileUrl(imageUrl);
+
+        setState(() {
+          _imagePath = imageUrl;
+          _imageKey = UniqueKey();
+        });
+
+        Utils.showToast("Profile updated!");
+      } else {
+        Utils.showToast("Upload failed");
+      }
+    } catch (e) {
+      debugPrint("Gallery pick error: $e");
+    }
+  }
+
+  Future<void> _setProfilePictureFromCamera() async {
+    Navigator.pop(context);
+
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+        maxWidth: 1200,
+      );
+
+      if (picked == null) return;
+
+      File imageFile = File(picked.path);
+
+      Utils.showToast("Uploading...");
+
+      String? imageUrl = await uploadToCloudinary(imageFile);
+
+      if (imageUrl != null) {
+        await updateUserProfileUrl(imageUrl);
+
+        setState(() {
+          _imagePath = imageUrl;
+          _imageKey = UniqueKey();
+        });
+
+        Utils.showToast("Profile updated!");
+      } else {
+        Utils.showToast("Upload failed");
+      }
+    } catch (e) {
+      debugPrint("Camera pick error: $e");
     }
   }
 
@@ -92,7 +205,6 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
                 IconButton(
                   onPressed: () async {
                     await _setProfilePictureFromGallery();
-                    //await _uploadAndSetProfilePicture();
                   },
                   icon: Icon(Icons.file_copy_sharp),
                   color: Theme.of(context).colorScheme.primary,
@@ -102,7 +214,6 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
                 IconButton(
                   onPressed: () async {
                     await _setProfilePictureFromCamera();
-                    //await _uploadAndSetProfilePicture();
                   },
                   icon: Icon(Icons.camera_alt),
                   color: Theme.of(context).colorScheme.primary,
@@ -116,127 +227,23 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
     );
   }
 
-  // Future<void> _uploadAndSetProfilePicture() async {
-  //   if (_imageFile != null) {
-  //     String? imageUrl = await _uploadImageToFireStorage(_imageFile!);
-
-  //     if (_auth.currentUser != null && imageUrl != null) {
-  //       await FirebaseFirestore.instance
-  //           .collection('users')
-  //           .doc(FirebaseAuth.instance.currentUser!.uid)
-  //           .update({'profileImageUrl': imageUrl});
-  //       setState(() {
-  //         _profileImageUrl = imageUrl;
-  //       });
-  //       Utils.showToast('Profile picture updated');
-  //     } else {
-  //       Utils.showToast('Error uploading image');
-  //     }
-  //   } else {
-  //     Utils.showToast('No image selected');
-  //   }
-  // }
-
-  // Future<String?> _uploadImageToFireStorage(File imageFile) async {
-  //   try {
-  //     final fileName = DateTime.now().millisecondsSinceEpoch.toString();
-  //     final ref = FirebaseStorage.instance.ref().child(
-  //       'profile_pics/$fileName.jpg',
-  //     );
-
-  //     await ref.putFile(imageFile); //fire storage pay upload kar dia image
-
-  //     // Get download URL
-  //     final url = await ref.getDownloadURL();
-  //     return url;
-  //   } catch (e) {
-  //     debugPrint("------Upload error: $e");
-  //     return null;
-  //   }
-  // }
-
-  Future<void> _setProfilePictureFromCamera() async {
-    Navigator.pop(context);
-    // Implement camera functionality here
-    try {
-      final XFile? picked = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 80,
-        maxWidth: 1200,
-      );
-      if (picked == null) return;
-      // permanent directory
-      final directory = await getApplicationDocumentsDirectory();
-      final String newPath = '${directory.path}/profile_pic.jpg';
-
-      // copy file
-      final File newImage = await File(picked.path).copy(newPath);
-
-      setState(() {
-        //_imageFile = newImage;
-        _imagePath = newImage.path;
-        _imageKey = UniqueKey();
-      });
-      //saving image in local storage using shared preferences
-      final prefs = await SharedPreferences.getInstance();
-      prefs.setString('profile_pic_path', _imagePath!);
-    } catch (e) {
-      debugPrint('-----Camera pick error: $e');
-    }
-  }
-
-  Future<void> _setProfilePictureFromGallery() async {
-    Navigator.pop(context);
-    // Implement camera functionality here
-    try {
-      final XFile? picked = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
-        maxWidth: 1200,
-      );
-      if (picked == null) return;
-      // permanent directory
-      final directory = await getApplicationDocumentsDirectory();
-      final String newPath = '${directory.path}/profile_pic.jpg';
-
-      // copy file
-      final File newImage = await File(picked.path).copy(newPath);
-
-      setState(() {
-        //_imageFile = newImage;
-        _imagePath = newImage.path;
-        _imageKey = UniqueKey();
-      });
-
-      debugPrint('-----newimage path: $_imagePath');
-      debugPrint('-----new path: $newPath');
-
-      //saving image in local storage using shared preferences
-      final prefs = await SharedPreferences.getInstance();
-      prefs.setString('profile_pic_path', _imagePath!);
-    } catch (e) {
-      debugPrint('-----galary pick error: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final ImageProvider<Object> profileImage;
-    if (_imagePath != null) {
-      // Add a unique key using the last modified timestamp to bust the cache.
-      // This is an alternative to the ValueKey on the CircleAvatar itself.
-      profileImage = FileImage(File(_imagePath!));
+
+    if (_imagePath != null && _imagePath!.startsWith("http")) {
+      profileImage = NetworkImage(_imagePath!);
     } else {
       profileImage = const AssetImage('assets/profile_image.png');
     }
-    //if not logged in, set default profile name and pic
+
     if (_selectedPageIndex == 2 && FirebaseAuth.instance.currentUser == null) {
       setState(() {
         _profileName = "profileName";
         _imagePath = null;
       });
     }
-    //agar login ho chuka hai to profile name and pic initialize karo
+
     if (_selectedPageIndex == 2 && FirebaseAuth.instance.currentUser != null) {
       _initializeProfile();
     }
@@ -324,15 +331,45 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
                         Align(
                           alignment: Alignment.topRight,
                           child: IconButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => SettingsScreen(),
-                                ),
-                              );
+                            onPressed: () async {
+                              // 1. Get the current user
+                              final user = FirebaseAuth.instance.currentUser;
+
+                              if (user != null) {
+                                // Optional: Show a "Checking..." toast if it takes a moment
+                                // Utils.showToast("Verifying access...");
+
+                                // 2. Fetch the user document from Firestore
+                                final userDoc = await FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(user.uid)
+                                    .get();
+
+                                // 3. Check if the document exists and the 'mode' is 'admin'
+                                // (Make sure the field name in Firestore is actually 'mode' or 'role')
+                                if (userDoc.exists &&
+                                    userDoc.data()?['userMode'] == 'admin') {
+                                  // ACCESS GRANTED: Go to Settings
+                                  if (!context.mounted)
+                                    return; // Safety check before using context after await
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SettingsScreen(),
+                                    ),
+                                  );
+                                } else {
+                                  // ACCESS DENIED
+                                  Utils.showToast(
+                                    "Access Denied: Admins only.",
+                                  );
+                                }
+                              }
                             },
-                            icon: const Icon(Icons.settings),
+                            icon: const Icon(
+                              Icons.admin_panel_settings_sharp,
+                              size: 30,
+                            ),
                           ),
                         ),
                         Align(
@@ -380,7 +417,7 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
             ),
       body: _page[_selectedPageIndex],
       bottomNavigationBar: ConvexAppBar(
-        style: TabStyle.react, // options: fixed, react, flip, textIn, textOut
+        style: TabStyle.react,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         items: const [
           TabItem(icon: Icons.chair, title: 'Seats'),

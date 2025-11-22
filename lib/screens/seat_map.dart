@@ -172,7 +172,7 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
               child: const Text('Cancel'),
             ),
 
-            // ✔ APPLY HOLD
+            // APPLY HOLD
             ElevatedButton(
               onPressed: () {
                 if (selectedDuration > Duration(minutes: 10)) {
@@ -185,8 +185,8 @@ class _SeatMapScreenState extends ConsumerState<SeatMapScreen> {
 
                 builder.addString(
                   jsonEncode({
-                    "uid": _auth.currentUser!.uid, // ✔ REAL UID
-                    "duration": selectedDuration.inSeconds, // ✔ seconds
+                    "uid": _auth.currentUser!.uid, // REAL UID
+                    "duration": selectedDuration.inSeconds, // seconds
                   }),
                 );
 

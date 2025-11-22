@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:seat_sync_v2/screens/auth/login.dart';
 import 'package:seat_sync_v2/screens/splash.dart';
 import 'package:seat_sync_v2/utils/utils.dart';
+import 'package:seat_sync_v2/widgets/prifile_item_tile.dart';
 
 final _formKey = GlobalKey<FormState>();
 
@@ -251,22 +252,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ],
     );
-  }
-}
-
-class ProfileItems extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final VoidCallback onTap;
-  const ProfileItems({
-    super.key,
-    required this.title,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(leading: Icon(icon), title: Text(title), onTap: onTap);
   }
 }
