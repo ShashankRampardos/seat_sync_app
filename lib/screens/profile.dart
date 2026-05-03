@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:mqtt_client/mqtt_client.dart';
+import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:seat_sync_v2/screens/auth/login.dart';
 import 'package:seat_sync_v2/screens/splash.dart';
 import 'package:seat_sync_v2/utils/utils.dart';
 import 'package:seat_sync_v2/widgets/prifile_item_tile.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
 
 final _formKey = GlobalKey<FormState>();
 
@@ -21,7 +24,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
   final _auth = FirebaseAuth.instance;
+  bool isAdmin = false;
   bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  void _loadUserData() async {
+    if (_auth.currentUser != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_auth.currentUser!.uid)
+          .get();
+      if (mounted) {
+        setState(() {
+          isAdmin = doc.data()?['userMode'] == 'admin';
+        });
+      }
+    }
+  }
 
   void editProfile(BuildContext context) {
     showModalBottomSheet(
@@ -175,6 +199,152 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void updateWifiCredential(BuildContext context) {
+    final _ssidController = TextEditingController();
+    final _passwordController = TextEditingController();
+    final _formKey = GlobalKey<FormState>();
+    bool isLoading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom, // 🔥 KEY FIX
+              ),
+              child: SingleChildScrollView(
+                // 🔥 allows movement
+                child: Container(
+                  padding: EdgeInsets.all(20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min, // 🔥 no fixed height
+                      children: [
+                        TextFormField(
+                          controller: _ssidController,
+                          decoration: InputDecoration(labelText: "SSID"),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "SSID required";
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 20),
+
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          decoration: InputDecoration(labelText: "Password"),
+                          validator: (value) {
+                            if (value == null || value.length < 8) {
+                              return "Min 8 chars";
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 30),
+
+                        ElevatedButton(
+                          onPressed: isLoading
+                              ? null
+                              : () async {
+                                  if (!_formKey.currentState!.validate())
+                                    return;
+
+                                  setModalState(() => isLoading = true);
+
+                                  try {
+                                    final ssid = _ssidController.text.trim();
+                                    final password = _passwordController.text
+                                        .trim();
+
+                                    await sendMQTT(
+                                      '{"data":"$ssid|$password"}',
+                                    );
+
+                                    Navigator.pop(context);
+                                  } catch (e) {
+                                    Utils.showToast("Failed: $e");
+                                  }
+
+                                  setModalState(() => isLoading = false);
+                                },
+                          child: isLoading
+                              ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text("Send"),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // String encryptData(String data) { // for encrypting ssid and password but not using encryption for now, keeping it simple
+  //   final key = encrypt.Key.fromUtf8('16charsecretkey!');
+  //   final iv = encrypt.IV.fromLength(16);
+
+  //   final encrypter = encrypt.Encrypter(encrypt.AES(key));
+  //   final encrypted = encrypter.encrypt(data, iv: iv);
+
+  //   return encrypted.base64;
+  // }
+
+  Future<void> sendMQTT(String message) async {
+    final client = MqttServerClient('broker.hivemq.com', 'flutter_client');
+
+    client.logging(on: false);
+    client.keepAlivePeriod = 20;
+
+    try {
+      final connMess = MqttConnectMessage()
+          .withClientIdentifier(
+            'flutter_client_${DateTime.now().millisecondsSinceEpoch}',
+          )
+          .startClean();
+
+      client.connectionMessage = connMess;
+
+      await client.connect(); //  IMPORTANT
+
+      if (client.connectionStatus!.state != MqttConnectionState.connected) {
+        throw Exception("MQTT connection failed");
+      }
+
+      final builder = MqttClientPayloadBuilder();
+      builder.addString(message);
+
+      client.publishMessage(
+        'seat/all/admin/wifi/update',
+        MqttQos.atLeastOnce,
+        builder.payload!,
+      );
+
+      await Future.delayed(Duration(milliseconds: 500)); // allow send
+
+      client.disconnect();
+    } catch (e) {
+      client.disconnect();
+      throw e;
+    }
+  }
+
   @override
   Widget build(context) {
     return Column(
@@ -190,20 +360,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             editProfile(context);
           },
         ),
-        ProfileItems(
-          title: 'login',
-          icon: Icons.input_rounded,
-          onTap: () {
-            if (_auth.currentUser != null) {
-              Utils.showToast('Already logged in');
-              return;
-            }
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => LoginScreen()),
-            ).then((value) => widget.refresh(() {}));
-          },
-        ),
+        // ProfileItems( //login button is not required, it will always say already loggedin
+        //   title: 'login',
+        //   icon: Icons.input_rounded,
+        //   onTap: () {
+        //     if (_auth.currentUser != null) {
+        //       Utils.showToast('Already logged in');
+        //       return;
+        //     }
+        //     Navigator.push(
+        //       context,
+        //       MaterialPageRoute(builder: (context) => LoginScreen()),
+        //     ).then((value) => widget.refresh(() {}));
+        //   },
+        // ),
         ProfileItems(
           title: 'logout',
           icon: Icons.reset_tv_rounded,
@@ -250,6 +420,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             );
           },
         ),
+        if (isAdmin)
+          ProfileItems(
+            title: 'Change Wifi Credentials of all seats',
+            icon: Icons.input_rounded,
+            onTap: () {
+              updateWifiCredential(context);
+            },
+          ),
       ],
     );
   }

@@ -67,7 +67,7 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
   Future<String?> uploadToCloudinary(File file) async {
     try {
       String cloudName = "daybeytsk";
-      String uploadPreset = "gql8nhle"; // 1. PASTE YOUR PRESET NAME HERE
+      String uploadPreset = "gql8nhle";
 
       // Note: Remove /v1_1/ from the URL logic if you want, but standard is:
       // https://api.cloudinary.com/v1_1/<cloud_name>/image/upload
@@ -328,50 +328,50 @@ class _TabsScreenState extends ConsumerState<TabsScreen> {
                   Expanded(
                     child: Stack(
                       children: [
-                        Align(
-                          alignment: Alignment.topRight,
-                          child: IconButton(
-                            onPressed: () async {
-                              // 1. Get the current user
-                              final user = FirebaseAuth.instance.currentUser;
+                        // Align( // admin panel mode on button on the top bar, but not needed now.
+                        //   alignment: Alignment.topRight,
+                        //   child: IconButton(
+                        //     onPressed: () async {
+                        //       // 1. Get the current user
+                        //       final user = FirebaseAuth.instance.currentUser;
 
-                              if (user != null) {
-                                // Optional: Show a "Checking..." toast if it takes a moment
-                                // Utils.showToast("Verifying access...");
+                        //       if (user != null) {
+                        //         // Optional: Show a "Checking..." toast if it takes a moment
+                        //         // Utils.showToast("Verifying access...");
 
-                                // 2. Fetch the user document from Firestore
-                                final userDoc = await FirebaseFirestore.instance
-                                    .collection('users')
-                                    .doc(user.uid)
-                                    .get();
+                        //         // 2. Fetch the user document from Firestore
+                        //         final userDoc = await FirebaseFirestore.instance
+                        //             .collection('users')
+                        //             .doc(user.uid)
+                        //             .get();
 
-                                // 3. Check if the document exists and the 'mode' is 'admin'
-                                // (Make sure the field name in Firestore is actually 'mode' or 'role')
-                                if (userDoc.exists &&
-                                    userDoc.data()?['userMode'] == 'admin') {
-                                  // ACCESS GRANTED: Go to Settings
-                                  if (!context.mounted)
-                                    return; // Safety check before using context after await
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => SettingsScreen(),
-                                    ),
-                                  );
-                                } else {
-                                  // ACCESS DENIED
-                                  Utils.showToast(
-                                    "Access Denied: Admins only.",
-                                  );
-                                }
-                              }
-                            },
-                            icon: const Icon(
-                              Icons.admin_panel_settings_sharp,
-                              size: 30,
-                            ),
-                          ),
-                        ),
+                        //         // 3. Check if the document exists and the 'mode' is 'admin'
+                        //         // (Make sure the field name in Firestore is actually 'mode' or 'role')
+                        //         if (userDoc.exists &&
+                        //             userDoc.data()?['userMode'] == 'admin') {
+                        //           // ACCESS GRANTED: Go to Settings
+                        //           if (!context.mounted)
+                        //             return; // Safety check before using context after await
+                        //           Navigator.push(
+                        //             context,
+                        //             MaterialPageRoute(
+                        //               builder: (context) => SettingsScreen(),
+                        //             ),
+                        //           );
+                        //         } else {
+                        //           // ACCESS DENIED
+                        //           Utils.showToast(
+                        //             "Access Denied: Admins only.",
+                        //           );
+                        //         }
+                        //       }
+                        //     },
+                        //     icon: const Icon(
+                        //       Icons.admin_panel_settings_sharp,
+                        //       size: 30,
+                        //     ),
+                        //   ),
+                        // ),
                         Align(
                           alignment: Alignment.bottomCenter,
                           child: Column(

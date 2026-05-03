@@ -51,6 +51,8 @@ dependencies:
   cloudinary_flutter: ^1.1.0
   cloudinary_api: ^1.1.1
   http: ^1.1.0
+  encrypt: ^5.0.3
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
